@@ -1,0 +1,1159 @@
+<!doctype html>
+<html lang="zh-CN" data-image-lab-state="checking">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f6f0e7">
+<title>一键去除图片背景 · Image Lab｜LunaBella</title>
+<link rel="stylesheet" href="mini-tools-r5/styles.css">
+<script src="../scripts/tool-motion.js" defer></script>
+<style>
+  :root {
+    --paper: #f6f0e7;
+    --paper2: #eee4d7;
+    --cream: #fffaf3;
+    --ink: #2c2620;
+    --muted: #746d64;
+    --terra: #ae6c50;
+    --line: #d8cab9;
+    --success: #3e6b4c;
+    --error: #a94438;
+  }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    margin: 0;
+    font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 0 24px 48px; }
+  .top-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 11px;
+    letter-spacing: .08em;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--terra);
+    text-decoration: none;
+    font-weight: 700;
+    border: 1px solid var(--line);
+    background: #fffaf4;
+    padding: 6px 14px;
+    border-radius: 20px;
+    transition: all .2s;
+  }
+  .back-btn:hover { background: var(--terra); color: #fff; }
+  .mode-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 12px;
+    border-radius: 14px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .pill-ready { background: #e2ede4; color: #2d5a37; border: 1px solid #c1dcc7; }
+  .pill-idle { background: #f0e6db; color: #785a44; border: 1px solid #ddccbe; }
+  .pill-busy { background: #faecd8; color: #8f531d; border: 1px solid #ebd0ad; }
+  .pill-error { background: #fae7e4; color: #9c382c; border: 1px solid #e7bbb5; }
+  .pulse-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .dot-ready { background: #2d5a37; }
+  .dot-idle { background: #b08d74; }
+  .dot-busy { background: #d97706; animation: blink 1s infinite alternate; }
+  .dot-error { background: #a94438; }
+  @keyframes blink { from { opacity: .35; } to { opacity: 1; } }
+
+  .compact-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    padding: 20px 0 16px;
+    flex-wrap: wrap;
+  }
+  .compact-hero-title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 6px;
+  }
+  .hero-spark {
+    display: inline-grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid rgba(174, 108, 80, .35);
+    background: #fffaf3;
+    color: var(--terra);
+    font-size: 16px;
+    flex: none;
+    pointer-events: none;
+  }
+  .compact-hero .eyebrow {
+    font-size: 10px;
+    letter-spacing: .16em;
+    color: var(--terra);
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .compact-hero h1 {
+    margin: 0;
+    font: 600 clamp(26px, 3.2vw, 36px)/1.18 Georgia, "Songti SC", "PingFang SC", serif;
+    letter-spacing: -.03em;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .compact-hero p {
+    margin: 0;
+    font-size: 13.5px;
+    color: var(--muted);
+  }
+  @media (max-width: 520px) {
+    .compact-hero h1 { white-space: normal; font-size: 24px; }
+  }
+  .hero-retry-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .mini-retry-btn {
+    border: 1px solid var(--terra);
+    background: #fffaf4;
+    color: var(--terra);
+    border-radius: 16px;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .mini-retry-btn:hover { background: var(--terra); color: #fff; }
+
+  .progress-bar-wrap {
+    width: 100%;
+    height: 6px;
+    background: #e6ded3;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 8px;
+    display: none;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--terra);
+    width: 0%;
+    transition: width .2s;
+  }
+  .progress-bar-fill.indeterminate {
+    width: 38%;
+    animation: slideIndet 1.2s ease-in-out infinite;
+  }
+  @keyframes slideIndet {
+    0% { transform: translateX(-110%); }
+    100% { transform: translateX(280%); }
+  }
+
+  .drop.is-dragover {
+    border-color: var(--terra);
+    background: #f5ebe0;
+  }
+  .comparison {
+    height: min(62vh, 520px);
+    min-height: 360px;
+    position: relative;
+  }
+  .comparison .placeholder[hidden] { display: none !important; }
+  .comparison .resultcanvas[hidden],
+  .comparison .before[hidden],
+  .comparison .centerline[hidden],
+  .comparison .compareinput[hidden] { display: none !important; }
+
+  /* Restored Meteor & Orbit Loading Effect (Editorial Warm Glass Overlay) */
+  .lab-loading-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 12;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 24px;
+    text-align: center;
+    background: rgba(246, 240, 231, 0.86);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 1;
+    transition: opacity .28s ease;
+  }
+  .lab-loading-overlay[hidden] { display: none !important; }
+  .lab-meteor-stage {
+    position: relative;
+    width: 132px;
+    height: 132px;
+    display: grid;
+    place-items: center;
+    transition: transform .42s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .lab-meteor-svg {
+    width: 132px;
+    height: 132px;
+    overflow: visible;
+    transition: transform .55s cubic-bezier(0.22, 1, 0.36, 1), opacity .4s ease;
+  }
+  .lab-moon-center-pct {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .lab-moon-center-pct strong {
+    font: 500 16px/1 Georgia, "Songti SC", serif;
+    color: var(--ink);
+    letter-spacing: .08em;
+    opacity: .9;
+    animation: labCoreBreath 3s ease-in-out infinite;
+  }
+  .lab-moon-center-pct span {
+    font-size: 9px;
+    letter-spacing: .18em;
+    color: var(--terra);
+    text-transform: uppercase;
+    margin-top: 4px;
+    font-weight: 600;
+  }
+  .lab-orbit-halo {
+    fill: rgba(174, 108, 80, 0.08);
+    transform-origin: 64px 64px;
+    animation: labHaloBreath 3.4s ease-in-out infinite;
+  }
+  .lab-orbit-ring {
+    fill: none;
+    stroke: rgba(174, 108, 80, 0.24);
+    stroke-width: 1.1;
+    transition: stroke .45s ease, stroke-width .45s ease;
+  }
+  .lab-orbit-ring.dashed {
+    stroke: rgba(174, 108, 80, 0.18);
+    stroke-dasharray: 2.5 6;
+  }
+  .lab-orbit-group-outer {
+    transform-origin: 64px 64px;
+    transform-box: view-box;
+    animation: labOrbitSpin 8s linear infinite;
+  }
+  .lab-orbit-group-inner {
+    transform-origin: 64px 64px;
+    transform-box: view-box;
+    animation: labMoonOrbit 11s linear infinite;
+  }
+  .lab-orbit-arc {
+    fill: none;
+    stroke: url(#labMeteorGrad);
+    stroke-width: 2.1;
+    stroke-linecap: round;
+  }
+  .lab-orbit-moon {
+    fill: #fffdf8;
+    stroke: var(--terra);
+    stroke-width: 1.4;
+  }
+  .lab-orbit-star {
+    fill: var(--terra);
+    opacity: .78;
+  }
+  .lab-moon-core {
+    fill: rgba(255, 250, 242, 0.92);
+    stroke: rgba(174, 108, 80, 0.34);
+    stroke-width: 1.1;
+    transform-origin: 64px 64px;
+    animation: labCoreBreath 3.0s ease-in-out infinite;
+  }
+  .lab-loading-overlay.stage-analyze .lab-orbit-group-outer { animation-duration: 4.2s; }
+  .lab-loading-overlay.stage-analyze .lab-orbit-group-inner { animation-duration: 3.3s; }
+  .lab-loading-overlay.stage-cutout .lab-orbit-group-outer { animation-duration: 3.1s; }
+  .lab-loading-overlay.stage-cutout .lab-orbit-ring { stroke: rgba(174, 108, 80, 0.34); }
+  .lab-loading-overlay.is-complete .lab-meteor-svg {
+    transform: scale(0.84);
+    opacity: .92;
+  }
+  .lab-loading-overlay.is-complete .lab-orbit-ring {
+    stroke: #3e6b4c;
+    stroke-width: 1.6;
+  }
+  .lab-loading-overlay.is-complete .lab-moon-center-pct strong {
+    color: #2d5a37;
+  }
+  .lab-loading-overlay[hidden] *, .lab-loading-overlay.is-complete * { animation-play-state: paused !important; }
+  @keyframes labOrbitSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @keyframes labMoonOrbit {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(-360deg); }
+  }
+  @keyframes labHaloBreath {
+    0%, 100% { opacity: .45; transform: scale(0.96); }
+    50% { opacity: .95; transform: scale(1.04); }
+  }
+  @keyframes labCoreBreath {
+    0%, 100% { opacity: .82; transform: scale(0.97); }
+    50% { opacity: 1; transform: scale(1.03); }
+  }
+  .lab-loading-word {
+    font: 500 18px/1.25 Georgia, "Songti SC", "PingFang SC", serif;
+    color: var(--ink);
+    letter-spacing: .06em;
+    margin: 2px 0 0;
+  }
+  .lab-loading-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    margin: 0;
+    letter-spacing: .04em;
+  }
+  .progress-bar-wrap { display: none !important; }
+  .resultcanvas.result-reveal {
+    animation: labResultFade .42s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes labResultFade {
+    from { opacity: .2; filter: blur(3px); }
+    to { opacity: 1; filter: blur(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lab-orbit-group-outer, .lab-orbit-group-inner, .lab-orbit-halo, .lab-moon-core, .lab-moon-center-pct strong, .resultcanvas.result-reveal { animation: none !important; }
+  }
+
+  .sub-tools {
+    margin-top: 14px;
+    border-top: 1px dashed var(--line);
+    padding-top: 12px;
+  }
+  .gate-footer {
+    margin-top: 22px;
+    border-top: 1px solid var(--line);
+    padding-top: 12px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .gate-footer summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: #7d624d;
+  }
+  .gate-footer p {
+    margin: 8px 0 0;
+    line-height: 1.7;
+    background: #fbf4ea;
+    border: 1px solid #e3d0ba;
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: #6c4e35;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top-nav">
+    <a href="../index.html#playground" class="back-btn">← 返回作品馆</a>
+    <div style="font-weight:700;font-size:12px;letter-spacing:.08em;color:var(--muted);">LUNABELLA · IMAGE LAB</div>
+    <div id="modelStatusBadge" class="mode-pill pill-busy"><span class="pulse-dot dot-busy"></span> <span id="modelBadgeText">正在检查浏览器能力...</span></div>
+  </header>
+
+  <section class="compact-hero">
+    <div>
+      <div class="eyebrow">AI Background Remover</div>
+      <div class="compact-hero-title-row">
+        <span class="hero-spark" aria-hidden="true">✦</span>
+        <h1>一键去除图片背景</h1>
+      </div>
+      <p>保留人物或物品主体，生成透明背景图片。</p>
+    </div>
+    <div class="hero-retry-wrap">
+      <button id="retryPrepareBtn" class="mini-retry-btn" type="button" hidden>重试准备模型</button>
+    </div>
+  </section>
+
+  <main class="workspace" style="padding-top:6px;padding-bottom:24px;">
+    <div class="cols">
+      <!-- Left Controls -->
+      <div class="controls">
+        <div class="controlblock first">
+          <label class="drop" id="dropZone">
+            <div class="placeholderIcon" style="font-size:28px;">✦</div>
+            <strong>拖放图片到这里，或点击选择</strong>
+            <span>支持 PNG / JPG / WebP，本机浏览器处理</span>
+            <input type="file" id="bgFile" accept="image/*">
+          </label>
+          <div class="fileline" id="bgFileInfo">未选择图片</div>
+        </div>
+
+        <!-- Primary AI Cutout -->
+        <div class="controlblock">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <h3 style="margin:0;">AI 去除复杂背景</h3>
+            <span style="font-size:10px;color:var(--terra);font-weight:700;">推荐</span>
+          </div>
+          <div class="twoactions">
+            <button id="aiRemove" class="action primary" style="flex:1;">
+              <strong id="aiBtnTitle">选择图片并开始去除背景</strong>
+              <small id="aiBtnSub">支持 PNG / JPG / WebP，点击即可上传</small>
+            </button>
+          </div>
+          <div class="progress-bar-wrap" id="progressWrap">
+            <div class="progress-bar-fill" id="progressFill"></div>
+          </div>
+        </div>
+
+        <!-- Export & Reset -->
+        <div class="controlblock">
+          <div class="actionbar">
+            <button id="saveCutout" class="action primary" style="flex:1;background:var(--terra);border-color:var(--terra);" disabled>
+              <strong>下载透明 PNG</strong>
+              <small>透明背景 · 保留 Alpha 通道</small>
+            </button>
+            <button id="resetCutout" class="action secondary" style="flex:0 0 92px;" disabled>
+              <strong>恢复原图</strong>
+            </button>
+          </div>
+          <div class="status" id="cutStatus">正在检查浏览器能力并准备 AI 模型...</div>
+        </div>
+
+        <!-- Secondary Backup: Solid Color -->
+        <div class="sub-tools">
+          <details id="solidBackupDetails">
+            <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);">备用模式：纯色背景快速去背（离线无需模型） ▾</summary>
+            <div style="margin-top:10px;">
+              <p style="font-size:11px;color:var(--muted);line-height:1.65;margin:0 0 8px;">
+                仅适用于纯白或单色背景，属于离线备用方案，不等同于 AI 复杂背景去除。
+              </p>
+              <div class="lineLabel">
+                <span>色差容差</span>
+                <output id="tolOut">32</output>
+              </div>
+              <input type="range" id="tolerance" min="5" max="90" value="32">
+              <div class="twoactions" style="margin-top:10px;">
+                <button id="solidRemove" class="action secondary" style="flex:1;" disabled>
+                  <strong>使用纯色备用去背</strong>
+                  <small>仅限纯色/白底</small>
+                </button>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <!-- Secondary Resize & Format -->
+        <div class="sub-tools">
+          <details>
+            <summary style="cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);">尺寸调整与格式导出 ▾</summary>
+            <div style="margin-top:10px;font-size:11px;color:var(--muted);line-height:1.65;">
+              <div class="twofields">
+                <label>输出宽度 (px)<input type="number" id="optWidth" min="16" max="4096" placeholder="自适应"></label>
+                <label>输出高度 (px)<input type="number" id="optHeight" min="16" max="4096" placeholder="自适应"></label>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;margin-top:10px;">
+                <label style="flex:1;">输出格式
+                  <select id="optFormat" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:6px;background:#fff;margin-top:4px;">
+                    <option value="image/png">PNG（保留透明背景）</option>
+                    <option value="image/webp">WebP（轻量透明）</option>
+                    <option value="image/jpeg">JPG（白底压缩）</option>
+                  </select>
+                </label>
+                <button id="exportCustomBtn" class="action secondary" style="padding:8px 12px;margin-top:16px;" disabled>
+                  <strong>按规格导出</strong>
+                </button>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- Right Preview Area -->
+      <div class="previewpanel">
+        <div class="previewhead">
+          <span id="cutMeta">未加载图片</span>
+          <div class="choice" id="bgStyles">
+            <span style="font-size:10px;line-height:28px;color:var(--muted);">预览底色：</span>
+            <button class="chosen" data-bg="checker">透明棋盘</button>
+            <button data-bg="white">白色</button>
+            <button data-bg="warm">暖杏色</button>
+          </div>
+        </div>
+
+        <div class="comparison checker" id="cutCompare">
+          <div class="placeholder" id="cutPlaceholder">
+            <div class="placeholderIcon">✦</div>
+            <strong>上传图片后在此查看透明结果</strong>
+            <span>左侧选择图片或直接拖放</span>
+          </div>
+
+          <canvas class="resultcanvas" id="cutCanvas" hidden></canvas>
+          <div class="before" id="cutBefore" hidden>
+            <img id="cutOriginal" alt="原图对比">
+          </div>
+          <div class="centerline" id="cutLine" hidden></div>
+          <input type="range" class="compareinput" id="cutSplit" min="0" max="100" value="50" hidden aria-label="原图与透明结果对比滑块">
+
+          <div class="lab-loading-overlay stage-prepare" id="labLoadingOverlay" hidden aria-live="polite">
+            <div class="lab-meteor-stage">
+              <svg class="lab-meteor-svg" viewBox="0 0 128 128" aria-hidden="true">
+                <defs>
+                  <linearGradient id="labMeteorGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#ae6c50" stop-opacity="0"/>
+                    <stop offset="65%" stop-color="#ae6c50" stop-opacity="0.72"/>
+                    <stop offset="100%" stop-color="#fffaf3" stop-opacity="1"/>
+                  </linearGradient>
+                </defs>
+                <circle class="lab-orbit-halo" cx="64" cy="64" r="54"/>
+                <circle class="lab-orbit-ring" cx="64" cy="64" r="50"/>
+                <circle class="lab-orbit-ring dashed" cx="64" cy="64" r="36"/>
+                <circle class="lab-moon-core" cx="64" cy="64" r="22"/>
+                <g class="lab-orbit-group-outer">
+                  <path class="lab-orbit-arc" d="M 64 14 A 50 50 0 0 1 114 64"/>
+                  <circle class="lab-orbit-moon" cx="114" cy="64" r="3.8"/>
+                  <circle class="lab-orbit-star" cx="28" cy="29" r="2.1"/>
+                </g>
+                <g class="lab-orbit-group-inner">
+                  <circle class="lab-orbit-star" cx="64" cy="28" r="2.6"/>
+                  <circle class="lab-orbit-moon" cx="95" cy="82" r="2.4"/>
+                </g>
+              </svg>
+              <div class="lab-moon-center-pct">
+                <strong id="labMoonPctNum">☾</strong>
+                <span id="labMoonPctTag">ORBIT</span>
+              </div>
+            </div>
+            <div class="lab-loading-word" id="labOverlayWord">Loading……</div>
+            <p class="lab-loading-title" id="labOverlayTitle">准备模型</p>
+            <button type="button" id="labCancelOverlayBtn" class="mini-retry-btn" style="margin-top:4px;">取消本次处理</button>
+          </div>
+        </div>
+
+        <div class="previewbottom">
+          <span>左：原图 / 右：透明背景结果</span>
+          <span>拖动滑块核对主体边缘</span>
+        </div>
+      </div>
+    </div>
+
+    <section class="gate-footer" aria-label="开源许可与隐私说明" style="margin-top:20px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#fffaf3;font-size:12px;line-height:1.7;color:var(--muted);">
+      <strong style="color:var(--ink);display:block;margin-bottom:4px;">开源许可、本地隐私与源码说明（AGPL-3.0 Production Gate）</strong>
+      <p style="margin:0;">
+        本工具所有图片处理均在浏览器本地完成，不上传图片至任何服务器。AI 去背引擎基于 <code>@imgly/background-removal@1.7.0</code>（<strong>AGPL-3.0-only</strong>），推理运行时基于 <code>onnxruntime-web@1.21.0</code>（<strong>MIT</strong>），模型权重来源于 IS-Net（<strong>MIT</strong>；以 IMG.LY 官方 ThirdPartyLicenses.json 为准）。独立对应源码仓库将于正式对外公开（Production）前经授权上线并在此处提供真实可访问链接（当前 RC1 Preview 阶段未放置占位链接）。
+      </p>
+    </section>
+  </main>
+</div>
+
+<script>
+(()=>{
+  'use strict';
+  const getEl = id => document.getElementById(id);
+  const status = text => { getEl('cutStatus').textContent = text; };
+  const humanBytes = n => n < 1024 ? (n + ' B') : n < 1024 * 1024 ? ((n/1024).toFixed(1) + ' KB') : ((n/1048576).toFixed(2) + ' MB');
+  const createURL = blob => URL.createObjectURL(blob);
+  const downloadBlob = (blob, name) => {
+    const url = createURL(blob), a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  };
+  const imageFromFile = file => new Promise((resolve, reject) => {
+    const url = createURL(file), img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('浏览器无法解码这张图片')); };
+    img.src = url;
+  });
+  const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+  const srcCanvas = (img, max = 2400) => {
+    const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(img.naturalWidth * scale));
+    c.height = Math.max(1, Math.round(img.naturalHeight * scale));
+    c.getContext('2d', { willReadFrequently: true }).drawImage(img, 0, 0, c.width, c.height);
+    return c;
+  };
+  const toBlob = (c, type = 'image/png', quality = .92) => new Promise((resolve, reject) => {
+    c.toBlob(b => b ? resolve(b) : reject(new Error('浏览器无法编码此格式')), type, quality);
+  });
+  const copyCanvas = (src, dst) => {
+    dst.width = src.width; dst.height = src.height;
+    const ctx = dst.getContext('2d');
+    ctx.clearRect(0, 0, dst.width, dst.height);
+    ctx.drawImage(src, 0, 0);
+  };
+
+  // Explicit 6-state machine: checking | loading | ready | processing | success | error
+  let appState = 'checking';
+  let bgFile = null, bgImg = null, bgSourceCanvas = null, bgResult = null, bgImageUrl = null;
+  let modelReady = false, modelHasRunOnce = false, imglyModule = null, preparePromise = null;
+
+  let activeCutoutRunId = 0;
+  let cutoutWorker=null, workerRequest=0, modelGeneration=0;
+  const workerPending=new Map();
+  function stopCutoutWorker(){
+    cutoutWorker?.terminate();cutoutWorker=null;
+    for(const task of workerPending.values())task.reject(new DOMException('处理已取消','AbortError'));
+    workerPending.clear();imglyModule=null;preparePromise=null;modelReady=false;
+  }
+  function workerCall(method,file,config={}){
+    if(!cutoutWorker){
+      cutoutWorker=new Worker('./image-lab-cutout-worker.js',{type:'module'});
+      cutoutWorker.onmessage=({data})=>{
+        const task=workerPending.get(data.id);if(!task)return;
+        if(data.type==='progress'){task.progress?.(data.key,data.current,data.total);return;}
+        workerPending.delete(data.id);
+        if(data.type==='error')task.reject(new Error(data.message));else task.resolve(data.result);
+      };
+      cutoutWorker.onerror=()=>stopCutoutWorker();
+    }
+    const {progress,...serializable}=config,id=++workerRequest;
+    return new Promise((resolve,reject)=>{workerPending.set(id,{resolve,reject,progress});cutoutWorker.postMessage({id,method,file,config:serializable});});
+  }
+  async function loadCutoutModule(){
+    if(typeof Worker==='undefined'||typeof OffscreenCanvas==='undefined')throw new Error('当前浏览器不支持可取消的本地 AI 处理，请使用纯色备用模式');
+    return {preload:config=>workerCall('preload',null,config),removeBackground:(file,config)=>workerCall('removeBackground',file,config)};
+  }
+  window.addEventListener('pagehide',()=>{modelGeneration++;stopCutoutWorker();});
+
+  function resetMoonPct() {
+    const ov = getEl('labLoadingOverlay');
+    const numEl = getEl('labMoonPctNum');
+    const tagEl = getEl('labMoonPctTag');
+    const wordEl = getEl('labOverlayWord');
+    if (numEl) numEl.textContent = '☾';
+    if (tagEl) tagEl.textContent = 'ORBIT';
+    if (wordEl) wordEl.textContent = 'Loading……';
+    if (ov) ov.classList.remove('is-complete', 'stage-prepare', 'stage-analyze', 'stage-cutout');
+  }
+
+  /**
+   * R1.4.9 Calm Editorial Loading…… (No fake percentage bar, no abrupt 0->100 jump)
+   * stepIdx: 0 = 正在准备模型 | 1 = 正在识别主体 | 2 = 正在生成透明背景 | 3 = 即将完成 (complete)
+   */
+  function showOverlay(_tag, title, _sub, _pct = null, stepIdx = 0) {
+    const ov = getEl('labLoadingOverlay');
+    if (!ov) return;
+    const isComplete = stepIdx >= 3;
+    ov.classList.remove('stage-prepare', 'stage-analyze', 'stage-cutout', 'is-complete');
+    if (isComplete) ov.classList.add('is-complete');
+    else if (stepIdx === 2) ov.classList.add('stage-cutout');
+    else if (stepIdx === 1) ov.classList.add('stage-analyze');
+    else ov.classList.add('stage-prepare');
+
+    const numEl = getEl('labMoonPctNum');
+    const tagEl = getEl('labMoonPctTag');
+    const wordEl = getEl('labOverlayWord');
+    const titleEl = getEl('labOverlayTitle');
+    if (numEl) numEl.textContent = isComplete ? '✦' : (stepIdx === 1 ? '✦' : '☾');
+    if (tagEl) tagEl.textContent = isComplete ? 'READY' : (stepIdx === 2 ? 'CUTOUT' : stepIdx === 1 ? 'FOCUS' : 'ORBIT');
+    if (wordEl) wordEl.textContent = isComplete ? '处理完成' : 'Loading……';
+    if (titleEl) titleEl.textContent = title || (isComplete ? '透明背景已生成' : stepIdx === 2 ? '正在生成透明背景' : stepIdx === 1 ? '正在识别主体' : '准备模型');
+
+    const cancelBtn = getEl('labCancelOverlayBtn');
+    if (cancelBtn) cancelBtn.hidden = isComplete;
+    ov.hidden = false;
+  }
+  function hideOverlay() {
+    const ov = getEl('labLoadingOverlay');
+    if (ov) {
+      ov.hidden = true;
+      ov.classList.remove('is-complete', 'stage-prepare', 'stage-analyze', 'stage-cutout');
+    }
+    resetMoonPct();
+  }
+
+  function classifyImglyStage(key, _current, _total, mode) {
+    const k = String(key || '').toLowerCase();
+    if (k.includes('fetch') || k.includes('download') || k.includes('onnx') || k.includes('wasm') || k.includes('decode') || k.includes('init') || k.includes('session')) {
+      return {
+        phase: 'prepare',
+        stepIdx: 0,
+        tag: 'PREPARE',
+        badge: '正在准备模型…',
+        title: '正在准备模型',
+        sub: '',
+        statusText: '正在准备模型…',
+        pctLabel: '',
+        pct: null
+      };
+    }
+    if (mode === 'infer' && k.includes('encode')) {
+      return {
+        phase: 'cutout',
+        stepIdx: 2,
+        tag: 'CUTOUT',
+        badge: '正在生成透明背景…',
+        title: '正在生成透明背景',
+        sub: '',
+        statusText: '正在生成透明背景…',
+        pctLabel: '',
+        pct: null
+      };
+    }
+    return {
+      phase: mode === 'infer' ? 'analyze' : 'prepare',
+      stepIdx: mode === 'infer' ? 1 : 0,
+      tag: mode === 'infer' ? 'ANALYZE' : 'PREPARE',
+      badge: mode === 'infer' ? '正在识别主体…' : '正在准备模型…',
+      title: mode === 'infer' ? '正在识别主体' : '正在准备模型',
+      sub: '',
+      statusText: mode === 'infer' ? '正在识别主体…' : '正在准备模型…',
+      pctLabel: '',
+      pct: null
+    };
+  }
+
+  function setState(next, badgeText, statusMsg) {
+    appState = next;
+    document.documentElement.dataset.imageLabState = next;
+    const b = getEl('modelStatusBadge'), t = getEl('modelBadgeText'), dot = b.querySelector('.pulse-dot');
+    const pillCls = next === 'ready' || next === 'success' ? 'pill-ready' : next === 'error' ? 'pill-error' : 'pill-busy';
+    const dotCls = next === 'ready' || next === 'success' ? 'dot-ready' : next === 'error' ? 'dot-error' : 'dot-busy';
+    b.className = 'mode-pill ' + pillCls;
+    dot.className = 'pulse-dot ' + dotCls;
+    if (badgeText) t.textContent = badgeText;
+    if (statusMsg) status(statusMsg);
+    getEl('retryPrepareBtn').hidden = (next !== 'error');
+    syncButtons();
+  }
+
+  function syncButtons() {
+    const busy = appState === 'processing';
+    const hasFile = Boolean(bgFile && bgSourceCanvas);
+    // Primary button stays clickable when no file is selected (opens file picker) or when file is ready
+    getEl('aiRemove').disabled = busy;
+    getEl('solidRemove').disabled = !hasFile || busy;
+    getEl('exportCustomBtn').disabled = !hasFile || busy;
+    getEl('saveCutout').disabled = !bgResult || busy;
+    getEl('resetCutout').disabled = !bgResult || busy;
+    const titleEl = getEl('aiBtnTitle');
+    if (busy) {
+      if (titleEl) titleEl.textContent = 'AI 正在去除背景...';
+      getEl('aiBtnSub').textContent = '正在本地推理，请稍候';
+    } else if (!hasFile) {
+      if (titleEl) titleEl.textContent = '选择图片并开始去除背景';
+      getEl('aiBtnSub').textContent = modelReady ? 'AI 模型已就绪 · 点击上传图片' : appState === 'error' ? '可先上传图片，支持重试 AI 或纯色备用' : '正在后台准备模型 · 可先上传图片';
+    } else if (modelReady) {
+      if (titleEl) titleEl.textContent = '开始去除背景';
+      getEl('aiBtnSub').textContent = 'AI 模型已就绪，点击立即去除背景';
+    } else if (appState === 'loading' || appState === 'checking') {
+      if (titleEl) titleEl.textContent = '开始去除背景';
+      getEl('aiBtnSub').textContent = '模型准备中，点击后就绪即开始推理';
+    } else if (appState === 'error') {
+      if (titleEl) titleEl.textContent = '重试 AI 去除背景';
+      getEl('aiBtnSub').textContent = '模型加载失败 · 点击重试或改用下方纯色备用';
+    }
+  }
+
+  function showProgress(pct) {
+    const wrap = getEl('progressWrap'), fill = getEl('progressFill');
+    wrap.style.display = 'block';
+    if (typeof pct === 'number' && Number.isFinite(pct)) {
+      fill.classList.remove('indeterminate');
+      fill.style.width = clamp(Math.round(pct), 0, 100) + '%';
+    } else {
+      fill.classList.add('indeterminate');
+      fill.style.width = '38%';
+    }
+  }
+  function hideProgress() {
+    const wrap = getEl('progressWrap'), fill = getEl('progressFill');
+    wrap.style.display = 'none';
+    fill.classList.remove('indeterminate');
+    fill.style.width = '0%';
+  }
+
+  // Compare split slider
+  const slider = getEl('cutSplit'), before = getEl('cutBefore'), line = getEl('cutLine');
+  const updateSplit = () => {
+    const x = Number(slider.value);
+    before.style.clipPath = 'inset(0 ' + (100 - x) + '% 0 0)';
+    line.style.left = x + '%';
+  };
+  slider.addEventListener('input', updateSplit);
+  const toggleCompare = shown => {
+    [slider, before, line].forEach(e => { e.hidden = !shown; });
+    if (shown) updateSplit();
+  };
+
+  function computeTransparentRatio(canvas) {
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    let transparent = 0, total = canvas.width * canvas.height;
+    for (let i = 3; i < data.length; i += 4) {
+      if (data[i] < 16) transparent++;
+    }
+    return total ? Number((transparent / total).toFixed(4)) : 0;
+  }
+
+  function withTimeout(promise, ms, label) {
+    let timer;
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label}超时（>${Math.round(ms / 1000)}秒），可能是 CDN 访问受限或网络较慢`)), ms);
+      })
+    ]).finally(() => clearTimeout(timer));
+  }
+
+  // Auto-check and auto-prepare AI model on entry (with hard timeout so it NEVER hangs forever)
+  async function prepareModel() {
+    if (modelReady && imglyModule) return imglyModule;
+    if (preparePromise) return preparePromise;
+    const generation=modelGeneration;
+
+    preparePromise = (async () => {
+      setState('checking', '初始化运行环境...', '正在检查浏览器 WebAssembly 与本地服务环境...');
+      if (location.protocol === 'file:') {
+        modelReady = false;
+        hideProgress();
+        setState(
+          'error',
+          '需通过本地服务启动',
+          '当前通过 file:// 打开，浏览器会拦截 WASM 与 AI 模型加载。请双击 OPEN-VISUAL-RECOVERY.command 通过 http://127.0.0.1 访问，或先展开下方「纯色背景备用模式」。'
+        );
+        return null;
+      }
+      if (typeof WebAssembly === 'undefined') {
+        modelReady = false;
+        hideProgress();
+        setState('error', '浏览器不支持 WASM', '当前浏览器不支持 WebAssembly，无法运行本地 AI 模型。');
+        return null;
+      }
+
+      setState('loading', '正在准备 AI 模型...', '正在按需加载 AI 去背景组件与模型权重（首次加载约需数秒，超时将自动提示重试，本机不上传图片）...');
+      showProgress(null);
+
+      try {
+        const mod = await withTimeout(
+          loadCutoutModule(),
+          15000,
+          '拉取 AI 去背组件'
+        );
+        if (!mod || typeof mod.removeBackground !== 'function') {
+          throw new Error('AI 组件未能正确导出 removeBackground 接口');
+        }
+        imglyModule = mod;
+
+        if (typeof mod.preload === 'function') {
+          await withTimeout(
+            mod.preload({
+              model: 'isnet_quint8',
+              progress: (key, current, total) => {
+                if(generation!==modelGeneration)return;
+                const info = classifyImglyStage(key, current, total, 'preload');
+                showProgress(info.pct);
+                getEl('modelBadgeText').textContent = info.badge;
+                status(info.statusText);
+                if (!getEl('labLoadingOverlay').hidden) {
+                  showOverlay(info.tag, info.title, info.sub, info.pct, info.stepIdx, info.pctLabel);
+                }
+              }
+            }),
+            22000,
+            '下载 AI 模型权重'
+          );
+        }
+
+        if(generation!==modelGeneration)return null;
+        modelReady = true;
+        hideProgress();
+        hideOverlay();
+        setState('ready', 'AI 模型已就绪', bgFile ? 'AI 模型已就绪，点击「开始去除背景」即可处理当前图片。' : 'AI 模型已就绪。请上传一张图片开始去除背景。');
+        return imglyModule;
+      } catch (err) {
+        if(generation!==modelGeneration)return null;
+        stopCutoutWorker();
+        modelReady = false;
+        hideProgress();
+        hideOverlay();
+        setState(
+          'error',
+          '模型准备失败 · 可重试',
+          'AI 模型加载未完成：' + (err && err.message ? err.message : String(err)) + '。可点击右上角「重试准备模型」，或展开下方「纯色背景备用模式」离线处理。'
+        );
+        return null;
+      } finally {
+        if(generation===modelGeneration)preparePromise = null;
+      }
+    })();
+
+    return preparePromise;
+  }
+
+  getEl('retryPrepareBtn').addEventListener('click', () => {
+    modelGeneration++;stopCutoutWorker();
+    prepareModel();
+  });
+
+  // Load File + Drag & Drop
+  async function handleFile(file) {
+    if (!file) return;
+    activeCutoutRunId++;
+    if(appState==='processing'){modelGeneration++;stopCutoutWorker();setState('error','已取消','已停止上一张图片的处理。');}
+    clearStageAdvance();
+    hideProgress();
+    hideOverlay();
+    try {
+      bgImg = await imageFromFile(file);
+      bgFile = file;
+      bgSourceCanvas = srcCanvas(bgImg);
+      bgResult = null;
+      getEl('cutPlaceholder').hidden = true;
+      getEl('cutCanvas').hidden = false;
+      if (bgImageUrl) URL.revokeObjectURL(bgImageUrl);
+      bgImageUrl = createURL(file);
+      getEl('cutOriginal').src = bgImageUrl;
+      copyCanvas(bgSourceCanvas, getEl('cutCanvas'));
+      slider.value = 50;
+      toggleCompare(true);
+      getEl('cutMeta').textContent = bgImg.naturalWidth + ' × ' + bgImg.naturalHeight + ' · ' + humanBytes(file.size);
+      getEl('bgFileInfo').textContent = file.name + ' · ' + humanBytes(file.size);
+      getEl('optWidth').value = bgImg.naturalWidth;
+      getEl('optHeight').value = bgImg.naturalHeight;
+      syncButtons();
+      if (modelReady) {
+        status('图片已载入，AI 模型已就绪。点击「开始去除背景」生成透明 PNG。');
+      } else if (appState === 'loading' || appState === 'checking') {
+        status('图片已载入。AI 模型仍在准备中，也可直接点击「开始去除背景」等待就绪后自动推理。');
+      } else {
+        status('图片已载入。可点击「开始去除背景」重试 AI 推理，或展开下方纯色备用模式。');
+      }
+    } catch (err) {
+      status('读取图片失败：' + err.message);
+    }
+  }
+
+  getEl('bgFile').addEventListener('change', e => handleFile(e.target.files[0]));
+  const dropZone = getEl('dropZone');
+  ['dragenter', 'dragover'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('is-dragover'); }));
+  ['dragleave', 'drop'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.remove('is-dragover'); }));
+  dropZone.addEventListener('drop', e => {
+    const f = e.dataTransfer?.files?.[0];
+    if (f) handleFile(f);
+  });
+
+  getEl('tolerance').addEventListener('input', () => { getEl('tolOut').textContent = getEl('tolerance').value; });
+
+  document.querySelectorAll('#bgStyles button').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#bgStyles button').forEach(x => x.classList.toggle('chosen', x === b));
+      getEl('cutCompare').className = 'comparison ' + (b.dataset.bg === 'white' ? 'bg-white' : b.dataset.bg === 'warm' ? 'bg-warm' : 'checker');
+    });
+  });
+
+  // Offline solid backup
+  function removeSolidBackground(c, tolerance) {
+    const w = c.width, h = c.height, ctx = c.getContext('2d', { willReadFrequently: true }), imgData = ctx.getImageData(0, 0, w, h), px = imgData.data;
+    const samples = [[0, 0], [w - 1, 0], [0, h - 1], [w - 1, h - 1], [Math.floor(w / 2), 0], [Math.floor(w / 2), h - 1]];
+    const colors = samples.map(([x, y]) => { const i = (y * w + x) * 4; return [px[i], px[i + 1], px[i + 2]]; });
+    const score = k => colors.reduce((acc, p) => acc + Math.sqrt((p[0] - colors[k][0]) ** 2 + (p[1] - colors[k][1]) ** 2 + (p[2] - colors[k][2]) ** 2), 0);
+    let best = 0;
+    for (let i = 1; i < colors.length; i++) if (score(i) < score(best)) best = i;
+    const ref = colors[best], visited = new Uint8Array(w * h), stack = new Int32Array(w * h);
+    let head = 0, tail = 0;
+    const eligible = i => {
+      const n = i * 4, dr = px[n] - ref[0], dg = px[n + 1] - ref[1], db = px[n + 2] - ref[2];
+      return Math.sqrt((dr * dr + dg * dg + db * db) / 3) < tolerance;
+    };
+    const enqueue = i => { if (visited[i] || !eligible(i)) return; visited[i] = 1; stack[tail++] = i; };
+    for (let x = 0; x < w; x++) { enqueue(x); enqueue((h - 1) * w + x); }
+    for (let y = 0; y < h; y++) { enqueue(y * w); enqueue(y * w + w - 1); }
+    while (head < tail) {
+      const i = stack[head++], x = i % w, y = Math.floor(i / w);
+      if (x > 0) enqueue(i - 1);
+      if (x < w - 1) enqueue(i + 1);
+      if (y > 0) enqueue(i - w);
+      if (y < h - 1) enqueue(i + w);
+    }
+    let count = 0;
+    for (let i = 0; i < visited.length; i++) { if (visited[i]) { px[i * 4 + 3] = 0; count++; } }
+    const next = new Uint8ClampedArray(px);
+    for (let y = 1; y < h - 1; y++) {
+      for (let x = 1; x < w - 1; x++) {
+        const i = y * w + x;
+        if (visited[i]) continue;
+        const near = (visited[i - 1] + visited[i + 1] + visited[i - w] + visited[i + w]);
+        if (!near) continue;
+        const di = i * 4, d = Math.sqrt(((px[di] - ref[0]) ** 2 + (px[di + 1] - ref[1]) ** 2 + (px[di + 2] - ref[2]) ** 2) / 3);
+        next[di + 3] = Math.min(px[di + 3], Math.round(255 * clamp((d - tolerance * .55) / (tolerance * .9), .25, 1)));
+      }
+    }
+    imgData.data.set(next);
+    ctx.putImageData(imgData, 0, 0);
+    return Math.round(count / (w * h) * 100);
+  }
+
+  getEl('solidRemove').addEventListener('click', () => {
+    if (!bgSourceCanvas) return;
+    const c = document.createElement('canvas');
+    copyCanvas(bgSourceCanvas, c);
+    const pct = removeSolidBackground(c, Number(getEl('tolerance').value));
+    bgResult = c;
+    copyCanvas(c, getEl('cutCanvas'));
+    window.__lastCutoutInfo = { mode: 'solid-backup', width: c.width, height: c.height, transparentRatio: computeTransparentRatio(c) };
+    syncButtons();
+    status('纯色备用去背完成：移除了约 ' + pct + '% 单色边缘背景。复杂背景请使用 AI 去除背景。');
+  });
+
+  getEl('resetCutout').addEventListener('click', () => {
+    if (!bgSourceCanvas) return;
+    bgResult = null;
+    copyCanvas(bgSourceCanvas, getEl('cutCanvas'));
+    syncButtons();
+    status('已恢复原图。');
+  });
+
+  // Primary AI Cutout Execution (Zero fake percentage timer; honest stages + clean cancel/re-upload recovery)
+  function clearStageAdvance() {
+    // Kept as no-op hook for handleFile/cancel symmetry; R1.4.8 uses zero fake percentage timers.
+  }
+
+  function cancelActiveCutout(reasonMsg = '已取消本次去背处理，可重新点击开始或更换图片。') {
+    activeCutoutRunId++;
+    modelGeneration++;stopCutoutWorker();
+    hideProgress();
+    hideOverlay();
+    setState(modelReady ? 'ready' : 'error', modelReady ? 'AI 模型已就绪' : '已取消', reasonMsg);
+  }
+  getEl('labCancelOverlayBtn')?.addEventListener('click', () => cancelActiveCutout());
+
+  async function runAiCutout() {
+    if (!bgFile) {
+      getEl('bgFile').click();
+      return;
+    }
+    const runId = ++activeCutoutRunId;
+    const isReuse = Boolean(modelReady);
+    if (!isReuse) {
+      showOverlay('PREPARE', '正在准备模型', '', null, 0);
+    } else {
+      showOverlay('ANALYZE', '正在识别主体', '', null, 1);
+    }
+
+    const mod = await prepareModel();
+    if (runId !== activeCutoutRunId) return;
+    if (!mod) {
+      hideOverlay();
+      return;
+    }
+
+    setState('processing', '正在识别主体…', '正在识别主体…');
+    showOverlay('ANALYZE', '正在识别主体', '', null, 1);
+
+    try {
+      const blob = await mod.removeBackground(bgFile, {
+        model: 'isnet_quint8',
+        progress: (key, current, total) => {
+          if (runId !== activeCutoutRunId) return;
+          const info = classifyImglyStage(key, current, total, 'infer');
+          getEl('modelBadgeText').textContent = info.badge;
+          status(info.statusText);
+          showOverlay(info.tag, info.title, '', null, Math.max(isReuse ? 1 : 0, info.stepIdx));
+        }
+      });
+      if (runId !== activeCutoutRunId) return;
+
+      showOverlay('CUTOUT', '正在生成透明背景', '', null, 2);
+      const processed = await imageFromFile(blob);
+      if (runId !== activeCutoutRunId) return;
+      const c = srcCanvas(processed, 2400);
+      bgResult = c;
+      const canvasEl = getEl('cutCanvas');
+      copyCanvas(c, canvasEl);
+      const ratio = computeTransparentRatio(c);
+      window.__lastCutoutInfo = { mode: 'ai', width: c.width, height: c.height, transparentRatio: ratio, reusedModel: isReuse };
+      modelReady = true;
+      modelHasRunOnce = true;
+
+      // Calm orbit convergence & gentle fade into result
+      showOverlay('COMPLETE', '透明背景已生成', '', null, 3);
+      await new Promise(r => setTimeout(r, 420));
+      if (runId !== activeCutoutRunId) return;
+
+      hideProgress();
+      hideOverlay();
+      canvasEl.classList.remove('result-reveal');
+      void canvasEl.offsetWidth;
+      canvasEl.classList.add('result-reveal');
+      setState('success', '去背完成（模型已缓存）', `去背完成，可继续拖动滑块对比结果或下载透明 PNG（${c.width} × ${c.height}，透明区域约 ${Math.round(ratio * 100)}%）。`);
+    } catch (err) {
+      if (runId !== activeCutoutRunId) return;
+      modelReady = false;
+      hideProgress();
+      hideOverlay();
+      setState(
+        'error',
+        'AI 推理失败 · 可重试',
+        'AI 去背景未完成：' + (err && err.message ? err.message : String(err)) + '。可点击重试，或展开下方纯色备用模式。'
+      );
+    }
+  }
+
+  window.__imageLabStagePreview = (stepIdx, pct, title, sub, tag, pctLabel) => {
+    showOverlay(tag, title, sub, pct, stepIdx, pctLabel);
+    showProgress(pct);
+  };
+  window.__imageLabCancelPreview = () => cancelActiveCutout();
+
+  getEl('aiRemove').addEventListener('click', runAiCutout);
+
+  // Download transparent PNG
+  getEl('saveCutout').addEventListener('click', async () => {
+    if (!bgResult) return;
+    try {
+      const blob = await toBlob(bgResult, 'image/png');
+      const base = (bgFile?.name || 'image').replace(/\.[^.]+$/, '');
+      downloadBlob(blob, `${base}-transparent.png`);
+      status('透明 PNG 已开始下载。');
+    } catch (err) {
+      status('导出失败：' + err.message);
+    }
+  });
+
+  // Custom Resize & Format Export
+  getEl('exportCustomBtn').addEventListener('click', async () => {
+    const source = bgResult || bgSourceCanvas;
+    if (!source) return;
+    try {
+      const w = clamp(parseInt(getEl('optWidth').value, 10) || source.width, 16, 4096);
+      const h = clamp(parseInt(getEl('optHeight').value, 10) || source.height, 16, 4096);
+      const mime = getEl('optFormat').value || 'image/png';
+      const out = document.createElement('canvas');
+      out.width = w; out.height = h;
+      const ctx = out.getContext('2d');
+      if (mime === 'image/jpeg') {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+      }
+      ctx.drawImage(source, 0, 0, w, h);
+      const ext = mime === 'image/webp' ? 'webp' : mime === 'image/jpeg' ? 'jpg' : 'png';
+      const blob = await toBlob(out, mime, 0.92);
+      downloadBlob(blob, `lunabella-image-${w}x${h}.${ext}`);
+      status(`已按 ${w} × ${h} (${ext.toUpperCase()}) 规格导出图片。`);
+    } catch (err) {
+      status('按规格导出失败：' + err.message);
+    }
+  });
+
+  // Auto-prepare immediately upon entering Image Lab
+  prepareModel();
+})();
+</script>
+</body>
+</html>
